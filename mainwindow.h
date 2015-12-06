@@ -83,6 +83,7 @@ private:
     void writeSettings();
     void createDockWindows();
     void createFsTree();
+    void parseTextFile(QTextStream &inStream);
     bool maybeSave();
     void loadFile(const QString &fileName);
     bool saveFile(const QString &fileName);
@@ -100,6 +101,7 @@ private:
     QFileSystemModel *model;
     QCommandLineParser *parser;
     QListWidget *parsedData;
+    QDockWidget* dock;
 
     QMenu *fileMenu;
     QMenu *editMenu;

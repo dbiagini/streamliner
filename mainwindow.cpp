@@ -42,6 +42,8 @@
 #include <QtWidgets>
 
 #include "mainwindow.h"
+
+static QString mPath = "C:\\Users\\dabi\\Documents\\Mantovana";
 //! [0]
 
 //! [1]
@@ -346,6 +348,8 @@ void MainWindow::loadFile(const QString &fileName)
     }
 
     QTextStream in(&file);
+    parseTextFile(in);
+    in.seek(0);//reset position
 #ifndef QT_NO_CURSOR
     QApplication::setOverrideCursor(Qt::WaitCursor);
 #endif
@@ -358,6 +362,22 @@ void MainWindow::loadFile(const QString &fileName)
     statusBar()->showMessage(tr("File loaded"), 2000);
 }
 //! [43]
+void MainWindow::parseTextFile(QTextStream &inStream)
+{
+    parsedData = new QListWidget(dock);
+    QString model_str, word_2 , word_3;
+    QStringList parsed_models;
+    while(!inStream.atEnd()){
+        model_str = inStream.readLine();
+        model_str = model_str.split(" ", QString::SkipEmptyParts).at(1);//from each string take the second word/
+        parsed_models << model_str.right(11) + "\n";
+    }
+    if(model_str.isEmpty())  QMessageBox::warning(this, tr("Error"),
+                                                  tr("Application Cannot find refNo"));
+
+    parsedData->addItems(parsed_models);
+    dock->setWidget(parsedData);
+}
 
 //! [44]
 bool MainWindow::saveFile(const QString &fileName)
@@ -411,23 +431,23 @@ QString MainWindow::strippedName(const QString &fullFileName)
 //! [49]
 void MainWindow::createDockWindows()
 {
-    QDockWidget *dock = new QDockWidget(tr("Files"), this);
-    dock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    QDockWidget *dock_t = new QDockWidget(tr("Files"), this);
+    dock_t->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
 
     createFsTree();
-    dock->setWidget(tree);
-    addDockWidget(Qt::RightDockWidgetArea, dock);
-    viewMenu->addAction(dock->toggleViewAction());
+    dock_t->setWidget(tree);
+    addDockWidget(Qt::RightDockWidgetArea, dock_t);
+    viewMenu->addAction(dock_t->toggleViewAction());
 
-    dock = new QDockWidget(tr("Parsed Data"), this);
-    parsedData = new QListWidget(dock);
-    parsedData->addItems(QStringList()
+    dock = new QDockWidget(tr("Parsed Data"), this);//memorize this dock for future update
+    //parsedData = new QListWidget(dock);
+    /*parsedData->addItems(QStringList()
             << "Thank you for your payment which we have received today."
             << "Your order has been dispatched and should be with you "
                "within 28 days."
             << "You made an overpayment (more than $5). Do you wish to "
-               "buy more items, or should we return the excess to you?");
-    dock->setWidget(parsedData);
+               "buy more items, or should we return the excess to you?");*/
+    //dock->setWidget(parsedData);
     addDockWidget(Qt::BottomDockWidgetArea, dock);
     viewMenu->addAction(dock->toggleViewAction());
 
@@ -448,7 +468,7 @@ void MainWindow::createFsTree()
 //        ? QString() : parser->positionalArguments().first();
 
     model = new QFileSystemModel;
-    model->setRootPath("");
+    model->setRootPath(mPath);
     tree = new myTreeView;
     tree->setModel(model);
 //    if (!rootPath.isEmpty()) {
