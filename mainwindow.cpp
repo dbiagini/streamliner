@@ -44,6 +44,7 @@
 #include "mainwindow.h"
 
 static QString mPath = "C:\\Users\\dabi\\Documents\\Mantovana";
+static QString errStringHash =  "OGGETTO NON CATEGORIZZATO";
 //! [0]
 
 //! [1]
@@ -60,6 +61,7 @@ MainWindow::MainWindow()
 
     readSettings();
     createDockWindows();
+    initHash();
 
     connect(textEdit->document(), SIGNAL(contentsChanged()),
             this, SLOT(documentWasModified()));
@@ -365,12 +367,14 @@ void MainWindow::loadFile(const QString &fileName)
 void MainWindow::parseTextFile(QTextStream &inStream)
 {
     parsedData = new QListWidget(dock);
-    QString model_str, word_2 , word_3;
+    QString model_str, parsed_str, out_hash;
     QStringList parsed_models;
     while(!inStream.atEnd()){
         model_str = inStream.readLine();
         model_str = model_str.split(" ", QString::SkipEmptyParts).at(1);//from each string take the second word/
-        parsed_models << model_str.right(11) + "\n";
+        parsed_str = model_str.right(11);
+        searchHash(parsed_str, out_hash);
+        parsed_models << model_str.right(11) + " - " + out_hash + "\n";
     }
     if(model_str.isEmpty())  QMessageBox::warning(this, tr("Error"),
                                                   tr("Application Cannot find refNo"));
@@ -489,4 +493,42 @@ void MainWindow::createFsTree()
 //    tree->setContextMenuPolicy(Qt::ActionsContextMenu);
 //    connect(tree, SIGNAL(customContextMenuRequested(const QPoint&)),
 //        this, SLOT(ShowContextMenu(const QPoint&)));
+}
+
+void MainWindow::initHash()
+{
+    hash = new QHash<QString, QString>;
+    hash->insert("21","PENSILE");
+    hash->insert("22V","INSERTO ");
+    hash->insert("2V","INSERTO ");
+    hash->insert("2W","INSERTO ");
+    hash->insert("22W","EL.GIOR.PENS.\"TETRIS\"");
+    hash->insert("22","LIBRERIA");
+    hash->insert("24","LIBRERIA");
+    hash->insert("29","LIBRERIA");
+    hash->insert("22..","PIANO");
+    hash->insert("5200","FASCIA");
+    hash->insert("52VG","TAVOLO+PROLUNGA");
+    hash->insert("2MA","MENSOLA");
+    hash->insert("2WL","MENSOLA");
+
+}
+void MainWindow::searchHash(const QString &stringIn, QString &stringOut)
+{
+        int retries = 3;
+        int characters = 4;
+        QString key = stringIn.left(characters);
+        while(retries)
+        {
+            stringOut = hash->value(key);
+            if(stringOut.isEmpty())
+            {
+                characters--;
+                retries--;
+                key = key.left(characters);
+            }else break; //found something
+
+        }
+        if(stringOut.isEmpty())
+            stringOut.append(errStringHash);
 }

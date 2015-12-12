@@ -82,6 +82,8 @@ private:
     void readSettings();
     void writeSettings();
     void createDockWindows();
+    void initHash();
+    void searchHash(const QString &stringIn, QString &stringOut);
     void createFsTree();
     void parseTextFile(QTextStream &inStream);
     bool maybeSave();
@@ -102,6 +104,7 @@ private:
     QCommandLineParser *parser;
     QListWidget *parsedData;
     QDockWidget* dock;
+    QHash<QString, QString>* hash;
 
     QMenu *fileMenu;
     QMenu *editMenu;
