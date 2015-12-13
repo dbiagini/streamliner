@@ -51,8 +51,18 @@ class QPlainTextEdit;
 class QListWidget;
 class QCommandLineParser;
 class QFileSystemModel;
+class QCalendarWidget;
 //class myTreeView;
 QT_END_NAMESPACE
+
+struct mOrder
+{
+    QString refNo;
+    QString name;
+    QString cp;
+    QDate   date;
+    QString destFolder;
+};
 
 //! [0]
 class MainWindow : public QMainWindow
@@ -94,6 +104,7 @@ private:
 
     QPlainTextEdit *textEdit;
     QString curFile;
+    QCalendarWidget *calendar;
    // QString newFile;
 
     //QListWidget *customerList;

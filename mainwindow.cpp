@@ -367,11 +367,14 @@ void MainWindow::loadFile(const QString &fileName)
 void MainWindow::parseTextFile(QTextStream &inStream)
 {
     parsedData = new QListWidget(dock);
-    QString model_str, parsed_str, out_hash;
+    QString  in_line, model_str, parsed_str, out_hash, out_date;
+    QDate l_date;
     QStringList parsed_models;
     while(!inStream.atEnd()){
-        model_str = inStream.readLine();
-        model_str = model_str.split(" ", QString::SkipEmptyParts).at(1);//from each string take the second word/
+        in_line = inStream.readLine();
+        model_str = in_line.split(" ", QString::SkipEmptyParts).at(1);//from each string take the second word/
+        out_date = in_line.mid(275, 8); //take date
+        l_date = QDate::fromString(out_date, "yyyyMMdd");
         parsed_str = model_str.right(11);
         searchHash(parsed_str, out_hash);
         parsed_models << model_str.right(11) + " - " + out_hash + "\n";
@@ -454,6 +457,16 @@ void MainWindow::createDockWindows()
     //dock->setWidget(parsedData);
     addDockWidget(Qt::BottomDockWidgetArea, dock);
     viewMenu->addAction(dock->toggleViewAction());
+
+    //calendar widget
+    QDockWidget *dock_c = new QDockWidget(tr("Calendar"), this);//memorize this dock for future update
+    calendar = new QCalendarWidget();
+    addDockWidget(Qt::BottomDockWidgetArea, dock_c);
+    dock_c->setWidget(calendar);
+    calendar->setMaximumWidth(600);
+    calendar->setGridVisible(true);
+    viewMenu->addAction(dock_c->toggleViewAction());
+
 
 //    connect(customerList, SIGNAL(currentTextChanged(QString)),
 //            this, SLOT(insertCustomer(QString)));
