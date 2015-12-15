@@ -43,6 +43,7 @@
 
 #include "mainwindow.h"
 
+#define DATE_OFFSET 275
 static QString mPath = "C:\\Users\\dabi\\Documents\\Mantovana";
 static QString errStringHash =  "OGGETTO NON CATEGORIZZATO";
 //! [0]
@@ -51,8 +52,8 @@ static QString errStringHash =  "OGGETTO NON CATEGORIZZATO";
 MainWindow::MainWindow()
 //! [1] //! [2]
 {
-    textEdit = new QPlainTextEdit;
-    setCentralWidget(textEdit);
+    //textEdit = new QPlainTextEdit;
+    //setCentralWidget(textEdit);
 
     createActions();
     createMenus();
@@ -63,8 +64,8 @@ MainWindow::MainWindow()
     createDockWindows();
     initHash();
 
-    connect(textEdit->document(), SIGNAL(contentsChanged()),
-            this, SLOT(documentWasModified()));
+    //connect(textEdit->document(), SIGNAL(contentsChanged()),
+            //this, SLOT(documentWasModified()));
     connect(tree, tree->openFile,
             this, openFromClick);
 
@@ -91,7 +92,7 @@ void MainWindow::newFile()
 //! [5] //! [6]
 {
     if (maybeSave()) {
-        textEdit->clear();
+        //textEdit->clear();
         setCurrentFile("");
     }
 }
@@ -162,7 +163,7 @@ void MainWindow::about()
 void MainWindow::documentWasModified()
 //! [15] //! [16]
 {
-    setWindowModified(textEdit->document()->isModified());
+    //setWindowModified(textEdit->document()->isModified());
 }
 //! [16]
 
@@ -205,19 +206,19 @@ void MainWindow::createActions()
     cutAct->setShortcuts(QKeySequence::Cut);
     cutAct->setStatusTip(tr("Cut the current selection's contents to the "
                             "clipboard"));
-    connect(cutAct, SIGNAL(triggered()), textEdit, SLOT(cut()));
+    //connect(cutAct, SIGNAL(triggered()), textEdit, SLOT(cut()));
 
     copyAct = new QAction(QIcon(":/images/copy.png"), tr("&Copy"), this);
     copyAct->setShortcuts(QKeySequence::Copy);
     copyAct->setStatusTip(tr("Copy the current selection's contents to the "
                              "clipboard"));
-    connect(copyAct, SIGNAL(triggered()), textEdit, SLOT(copy()));
+    //connect(copyAct, SIGNAL(triggered()), textEdit, SLOT(copy()));
 
     pasteAct = new QAction(QIcon(":/images/paste.png"), tr("&Paste"), this);
     pasteAct->setShortcuts(QKeySequence::Paste);
     pasteAct->setStatusTip(tr("Paste the clipboard's contents into the current "
                               "selection"));
-    connect(pasteAct, SIGNAL(triggered()), textEdit, SLOT(paste()));
+    //connect(pasteAct, SIGNAL(triggered()), textEdit, SLOT(paste()));
 
     aboutAct = new QAction(tr("&About"), this);
     aboutAct->setStatusTip(tr("Show the application's About box"));
@@ -233,10 +234,10 @@ void MainWindow::createActions()
     cutAct->setEnabled(false);
 //! [23] //! [24]
     copyAct->setEnabled(false);
-    connect(textEdit, SIGNAL(copyAvailable(bool)),
-            cutAct, SLOT(setEnabled(bool)));
-    connect(textEdit, SIGNAL(copyAvailable(bool)),
-            copyAct, SLOT(setEnabled(bool)));
+    //connect(textEdit, SIGNAL(copyAvailable(bool)),
+            //cutAct, SLOT(setEnabled(bool)));
+    //connect(textEdit, SIGNAL(copyAvailable(bool)),
+            //copyAct, SLOT(setEnabled(bool)));
 }
 //! [24]
 
@@ -321,17 +322,17 @@ void MainWindow::writeSettings()
 bool MainWindow::maybeSave()
 //! [40] //! [41]
 {
-    if (textEdit->document()->isModified()) {
-        QMessageBox::StandardButton ret;
-        ret = QMessageBox::warning(this, tr("Application"),
-                     tr("The document has been modified.\n"
-                        "Do you want to save your changes?"),
-                     QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
-        if (ret == QMessageBox::Save)
-            return save();
-        else if (ret == QMessageBox::Cancel)
-            return false;
-    }
+//    if (textEdit->document()->isModified()) {
+//        QMessageBox::StandardButton ret;
+//        ret = QMessageBox::warning(this, tr("Application"),
+//                     tr("The document has been modified.\n"
+//                        "Do you want to save your changes?"),
+//                     QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+//        if (ret == QMessageBox::Save)
+//            return save();
+//        else if (ret == QMessageBox::Cancel)
+//            return false;
+//    }
     return true;
 }
 //! [41]
@@ -355,7 +356,7 @@ void MainWindow::loadFile(const QString &fileName)
 #ifndef QT_NO_CURSOR
     QApplication::setOverrideCursor(Qt::WaitCursor);
 #endif
-    textEdit->setPlainText(in.readAll());
+    //textEdit->setPlainText(in.readAll());
 #ifndef QT_NO_CURSOR
     QApplication::restoreOverrideCursor();
 #endif
@@ -373,11 +374,11 @@ void MainWindow::parseTextFile(QTextStream &inStream)
     while(!inStream.atEnd()){
         in_line = inStream.readLine();
         model_str = in_line.split(" ", QString::SkipEmptyParts).at(1);//from each string take the second word/
-        out_date = in_line.mid(275, 8); //take date
+        out_date = in_line.mid(DATE_OFFSET, 8); //take date
         l_date = QDate::fromString(out_date, "yyyyMMdd");
         parsed_str = model_str.right(11);
         searchHash(parsed_str, out_hash);
-        parsed_models << model_str.right(11) + " - " + out_hash + "\n";
+        parsed_models << model_str.right(11) + " - " + out_hash + "  consegna: "+ l_date.toString("ddd MMMM d yy") + "\n";
     }
     if(model_str.isEmpty())  QMessageBox::warning(this, tr("Error"),
                                                   tr("Application Cannot find refNo"));
@@ -403,7 +404,7 @@ bool MainWindow::saveFile(const QString &fileName)
 #ifndef QT_NO_CURSOR
     QApplication::setOverrideCursor(Qt::WaitCursor);
 #endif
-    out << textEdit->toPlainText();
+    //out << textEdit->toPlainText();
 #ifndef QT_NO_CURSOR
     QApplication::restoreOverrideCursor();
 #endif
@@ -419,7 +420,7 @@ void MainWindow::setCurrentFile(const QString &fileName)
 //! [46] //! [47]
 {
     curFile = fileName;
-    textEdit->document()->setModified(false);
+    //textEdit->document()->setModified(false);
     setWindowModified(false);
 
     QString shownName = curFile;
@@ -438,25 +439,31 @@ QString MainWindow::strippedName(const QString &fullFileName)
 //! [49]
 void MainWindow::createDockWindows()
 {
-    QDockWidget *dock_t = new QDockWidget(tr("Files"), this);
-    dock_t->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-
-    createFsTree();
-    dock_t->setWidget(tree);
-    addDockWidget(Qt::RightDockWidgetArea, dock_t);
-    viewMenu->addAction(dock_t->toggleViewAction());
 
     dock = new QDockWidget(tr("Parsed Data"), this);//memorize this dock for future update
-    //parsedData = new QListWidget(dock);
-    /*parsedData->addItems(QStringList()
-            << "Thank you for your payment which we have received today."
-            << "Your order has been dispatched and should be with you "
-               "within 28 days."
-            << "You made an overpayment (more than $5). Do you wish to "
-               "buy more items, or should we return the excess to you?");*/
-    //dock->setWidget(parsedData);
-    addDockWidget(Qt::BottomDockWidgetArea, dock);
+    addDockWidget(Qt::TopDockWidgetArea, dock);
     viewMenu->addAction(dock->toggleViewAction());
+
+    QDockWidget *dock_t = new QDockWidget(tr("Files"), this);
+    //dock_t->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+
+    createFsTree();
+    addDockWidget(Qt::TopDockWidgetArea, dock_t);
+    dock_t->setWidget(tree);
+    dock_t->setMaximumWidth(600);
+    viewMenu->addAction(dock_t->toggleViewAction());
+
+    //calendar events
+    eventDock = new QDockWidget(tr("Consegne Selezionate"), this);//memorize this dock for future update
+    addDockWidget(Qt::BottomDockWidgetArea, eventDock);
+    viewMenu->addAction(eventDock->toggleViewAction());
+    //TEMPORARY???
+    eventList = new QListWidget(dock);
+    eventList->addItems(QStringList()
+            << "21VPPA45B00 - PENSILE JOLLY DA 13-45 H.36  TONY"
+            << "22VBSJ30C00 - INSERTO \"C\"X JOLLY EVO L.30 MAYA DESERT OPACO - ARCH. PARENTI"
+            << "22WCTL90002 - EL.GIO.PEN.\"TETRIS\"L90 P33.4 H36 3VANI ALEVE'OL.ME - FRANCESCO");
+    eventDock->setWidget(eventList);
 
     //calendar widget
     QDockWidget *dock_c = new QDockWidget(tr("Calendar"), this);//memorize this dock for future update

@@ -102,7 +102,7 @@ private:
     void setCurrentFile(const QString &fileName);
     QString strippedName(const QString &fullFileName);
 
-    QPlainTextEdit *textEdit;
+    //QPlainTextEdit *textEdit;
     QString curFile;
     QCalendarWidget *calendar;
    // QString newFile;
@@ -114,7 +114,9 @@ private:
     QFileSystemModel *model;
     QCommandLineParser *parser;
     QListWidget *parsedData;
+    QListWidget *eventList;
     QDockWidget* dock;
+    QDockWidget* eventDock;
     QHash<QString, QString>* hash;
 
     QMenu *fileMenu;
