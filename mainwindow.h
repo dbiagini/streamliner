@@ -101,7 +101,9 @@ private:
     bool saveFile(const QString &fileName);
     void setCurrentFile(const QString &fileName);
     QString strippedName(const QString &fullFileName);
-
+    int findOrder(const QDate &date, QStringList &orderList);
+    void addOrder(const mOrder &order);
+    int deleteOrder(const QString &refNo);
     //QPlainTextEdit *textEdit;
     QString curFile;
     QCalendarWidget *calendar;
@@ -118,6 +120,8 @@ private:
     QDockWidget* dock;
     QDockWidget* eventDock;
     QHash<QString, QString>* hash;
+    //temporary for debugging//
+    QLinkedList<mOrder> ordersList;
 
     QMenu *fileMenu;
     QMenu *editMenu;

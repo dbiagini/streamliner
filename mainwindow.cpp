@@ -372,13 +372,18 @@ void MainWindow::parseTextFile(QTextStream &inStream)
     QDate l_date;
     QStringList parsed_models;
     while(!inStream.atEnd()){
+        mOrder l_order;
         in_line = inStream.readLine();
         model_str = in_line.split(" ", QString::SkipEmptyParts).at(1);//from each string take the second word/
         out_date = in_line.mid(DATE_OFFSET, 8); //take date
         l_date = QDate::fromString(out_date, "yyyyMMdd");
         parsed_str = model_str.right(11);
+        l_order.refNo = parsed_str;
+        l_order.date = l_date;
         searchHash(parsed_str, out_hash);
+        l_order.name = out_hash;
         parsed_models << model_str.right(11) + " - " + out_hash + "  consegna: "+ l_date.toString("ddd MMMM d yy") + "\n";
+        addOrder(l_order);
     }
     if(model_str.isEmpty())  QMessageBox::warning(this, tr("Error"),
                                                   tr("Application Cannot find refNo"));
@@ -551,4 +556,44 @@ void MainWindow::searchHash(const QString &stringIn, QString &stringOut)
         }
         if(stringOut.isEmpty())
             stringOut.append(errStringHash);
+}
+
+int MainWindow::findOrder(const QDate &date, QStringList &orderList)
+{
+
+}
+void MainWindow::addOrder(const mOrder &order)
+{
+    int order_exists = 0;
+    int order_inserted = 0;
+    if(!order.refNo.isEmpty())
+    {
+       QLinkedList<mOrder>::iterator i;
+       for(i = ordersList.begin(); i != ordersList.end(); i++)
+       {
+           if(order.refNo == i->refNo)
+           {
+               order_exists = 1;
+               break;
+           }
+       }
+       if(!order_exists)
+       {
+           for(i = ordersList.begin(); i != ordersList.end(); i++)
+           {
+               if(order.date > i->date)
+               {
+                   //i++
+                   ordersList.insert(i, order);
+                   order_inserted = 1;
+                   break;
+               }
+           }
+           if (!order_inserted) ordersList.append(order);
+       }
+    }
+}
+int MainWindow::deleteOrder(const QString &refNo)
+{
+
 }
