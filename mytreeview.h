@@ -15,6 +15,9 @@ QT_BEGIN_NAMESPACE
 //class QFileSystemModel;
 QT_END_NAMESPACE
 
+#define ERROR_APP 1
+#define SUCCESS_APP 0
+
 //class QTreeView;
 
 class myTreeView : public QTreeView

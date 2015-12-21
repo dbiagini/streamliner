@@ -58,7 +58,7 @@ QT_END_NAMESPACE
 struct mOrder
 {
     QString refNo;
-    QString name;
+    QStringList name; //one order is made of multiple items
     QString cp;
     QDate   date;
     QString destFolder;
@@ -101,9 +101,12 @@ private:
     bool saveFile(const QString &fileName);
     void setCurrentFile(const QString &fileName);
     QString strippedName(const QString &fullFileName);
-    int findOrder(const QDate &date, QStringList &orderList);
+    int findOrder(const QDate &date, QStringList &l_orderList);
     void addOrder(const mOrder &order);
     int deleteOrder(const QString &refNo);
+    int databaseSetup();
+    int loadDatabase();
+    int saveDatabase();
     //QPlainTextEdit *textEdit;
     QString curFile;
     QCalendarWidget *calendar;
@@ -122,6 +125,7 @@ private:
     QHash<QString, QString>* hash;
     //temporary for debugging//
     QLinkedList<mOrder> ordersList;
+    QFile *dbase_file;
 
     QMenu *fileMenu;
     QMenu *editMenu;

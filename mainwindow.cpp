@@ -44,8 +44,11 @@
 #include "mainwindow.h"
 
 #define DATE_OFFSET 275
+#define REF_OFFSET 497
 static QString mPath = "C:\\Users\\dabi\\Documents\\Mantovana";
 static QString errStringHash =  "OGGETTO NON CATEGORIZZATO";
+static const QString filePath = "C:\\Users\\dabi\\Documents\\Mantovana\\database.txt";
+static bool dbase_status = FALSE;
 //! [0]
 
 //! [1]
@@ -71,6 +74,7 @@ MainWindow::MainWindow()
 
     setCurrentFile("");
     setUnifiedTitleAndToolBarOnMac(true);
+    databaseSetup();
 }
 //! [2]
 
@@ -84,6 +88,9 @@ void MainWindow::closeEvent(QCloseEvent *event)
     } else {
         event->ignore();
     }
+    saveDatabase();
+    dbase_file->close();
+
 }
 //! [4]
 
@@ -368,7 +375,7 @@ void MainWindow::loadFile(const QString &fileName)
 void MainWindow::parseTextFile(QTextStream &inStream)
 {
     parsedData = new QListWidget(dock);
-    QString  in_line, model_str, parsed_str, out_hash, out_date;
+    QString  in_line, model_str, parsed_str, out_hash, out_date, l_refNo;
     QDate l_date;
     QStringList parsed_models;
     while(!inStream.atEnd()){
@@ -378,11 +385,12 @@ void MainWindow::parseTextFile(QTextStream &inStream)
         out_date = in_line.mid(DATE_OFFSET, 8); //take date
         l_date = QDate::fromString(out_date, "yyyyMMdd");
         parsed_str = model_str.right(11);
-        l_order.refNo = parsed_str;
+        l_refNo = in_line.mid(REF_OFFSET, 14);
+        l_order.refNo = l_refNo;
         l_order.date = l_date;
         searchHash(parsed_str, out_hash);
-        l_order.name = out_hash;
-        parsed_models << model_str.right(11) + " - " + out_hash + "  consegna: "+ l_date.toString("ddd MMMM d yy") + "\n";
+        l_order.name.append(parsed_str + " - " + out_hash);
+        parsed_models << model_str.right(11) + " - " + out_hash + "  consegna: "+ l_date.toString("ddd MMMM d yy") + " " + l_refNo + "\n";
         addOrder(l_order);
     }
     if(model_str.isEmpty())  QMessageBox::warning(this, tr("Error"),
@@ -558,13 +566,31 @@ void MainWindow::searchHash(const QString &stringIn, QString &stringOut)
             stringOut.append(errStringHash);
 }
 
-int MainWindow::findOrder(const QDate &date, QStringList &orderList)
+int MainWindow::findOrder(const QDate &date, QStringList &l_orderList)
 {
-
+    int orders_found = 0;
+    if(date.isValid())
+    {
+       QLinkedList<mOrder>::iterator i;
+       for(i = ordersList.begin(); i != ordersList.end(); i++)
+       {
+           if(date == i->date)
+           {
+               l_orderList.append(i->name);
+               orders_found++;
+           }
+       }
+       if(!orders_found)
+       {
+           QMessageBox::warning(this, tr("Error"), tr("No Orders found"));
+       } return SUCCESS_APP; //found some orders return
+    }else QMessageBox::warning(this, tr("Error"), tr("Date Not Valid"));
+    return ERROR_APP;
 }
 void MainWindow::addOrder(const mOrder &order)
 {
     int order_exists = 0;
+    //mOrder l_order;
     int order_inserted = 0;
     if(!order.refNo.isEmpty())
     {
@@ -574,6 +600,8 @@ void MainWindow::addOrder(const mOrder &order)
            if(order.refNo == i->refNo)
            {
                order_exists = 1;
+               i->name << (*order.name.begin()); //add to pre-existing order
+              // l_order = *i;
                break;
            }
        }
@@ -581,19 +609,161 @@ void MainWindow::addOrder(const mOrder &order)
        {
            for(i = ordersList.begin(); i != ordersList.end(); i++)
            {
-               if(order.date > i->date)
+               if(order.date > i->date) //order by date
                {
-                   //i++
                    ordersList.insert(i, order);
                    order_inserted = 1;
                    break;
                }
            }
-           if (!order_inserted) ordersList.append(order);
+           if (!order_inserted) ordersList.append(order); //add at the end
        }
-    }
+       else
+       {
+           //order exists already add items to mOrder
+           QMessageBox::warning(this, tr("Error"), tr("Order refNo exists Item Appended"));
+       }
+    }else QMessageBox::warning(this, tr("Error"), tr("Order refNo Empty"));
 }
 int MainWindow::deleteOrder(const QString &refNo)
 {
+    int order_deleted = 0;
+    if(!refNo.isEmpty())
+    {
+       QLinkedList<mOrder>::iterator i;
+       for(i = ordersList.begin(); i != ordersList.end(); i++)
+       {
+           if(refNo == i->refNo)
+           {
+               ordersList.erase(i);
+               order_deleted = 1;
+               break;
+           }
+       }
+       if(!order_deleted)
+       {
+           QMessageBox::warning(this, tr("Error"), tr("Cannot find Order refNo"));
+       }
+    }else QMessageBox::warning(this, tr("Error"), tr("Order refNo Empty"));
+}
 
+int MainWindow::databaseSetup()
+{
+    dbase_file = new QFile(filePath);
+    if (!dbase_file->open(QIODevice::ReadWrite))
+    {
+        QMessageBox::warning(this, tr("Error"), tr("Cannot Open File"));
+        statusBar()->showMessage(tr("Database Disconnected"), 3000);
+        return ERROR_APP;
+    }
+    dbase_status = TRUE;
+    loadDatabase();
+    statusBar()->showMessage(tr("Database Connected"), 3000);
+    return SUCCESS_APP;
+}
+int MainWindow::loadDatabase()
+{
+    if(dbase_file){
+        mOrder in_item;
+        QString l_date;
+        QStringList l_FullName;
+        QString l_name;
+        QTextStream in(dbase_file);
+        QString id;
+        while(!in.atEnd())
+        {
+            char x;
+            QString *out_item;
+            in >> x;
+            if (x == '_')
+            {
+                in >> x;
+                switch(x){
+                    case 'O':
+                        if(!in_item.refNo.isEmpty()){  //if this is not the first in file
+                            if(!l_name.isEmpty())
+                            {
+                                l_FullName.append(l_name);
+                                l_name.clear();
+                            }
+                            if(!l_date.isEmpty())
+                            {
+                                in_item.date = QDate::fromString(l_date, "yyyyMMdd");
+                                l_date.clear();
+                            }
+                            if(!l_FullName.isEmpty())
+                            {
+                                in_item.name = l_FullName;
+                                l_FullName.clear();
+                            }
+                            ordersList.append(in_item); //add previous order
+                           // memset(&in_item, 0 , sizeof(in_item));
+                            in_item.cp.clear(); //reset mOrder
+                            in_item.refNo.clear();
+                            in_item.destFolder.clear();
+                        }
+                        break;
+                    case 'D':
+                        out_item = &l_date;
+                        break;
+                    case 'R':
+                        out_item = &in_item.refNo;
+                        break;
+                    case 'F':
+                        out_item = &in_item.destFolder;
+                        break;
+                    case 'C':
+                        out_item = &in_item.cp;
+                        break;
+                    case 'N':
+                        if(!l_name.isEmpty())
+                        {
+                            l_FullName.append(l_name);
+                            l_name.clear();
+                        }
+                        out_item = &l_name;
+                        break;
+                }
+            } else if(out_item)
+            {
+                out_item->append(x);   //output the char read
+            }else  QMessageBox::warning(this, tr("Error"), tr("Parsing Database Issue: Field not recognized"));
+        }
+        QMessageBox::warning(this, tr("Success"), tr("Database Loaded!"));
+        return SUCCESS_APP;
+
+    } QMessageBox::warning(this, tr("Warning"), tr("No database found, Opening New"));
+     return SUCCESS_APP;
+}
+void parseString()
+{
+
+}
+int MainWindow::saveDatabase()
+{
+    if(dbase_file->isWritable())
+    {
+        QLinkedList<mOrder>::iterator i;
+        QTextStream out(dbase_file);
+        for(i = ordersList.begin(); i != ordersList.end(); i++)
+        {
+             out << "_O";
+             out << "_D";
+             out << i->date.toString("yyyyMMdd");
+             out << "_R";
+             out << i->refNo;
+              out << "_F";
+             out << i->destFolder;
+             out << "_C";
+             out << i->cp;
+             QStringList::iterator j;
+             for(j = i->name.begin(); j!= i->name.end(); j++)
+             {
+                out << "_N";
+                out << *j;
+             }
+        }
+        return SUCCESS_APP;
+    }else QMessageBox::warning(this, tr("Error"), tr("Cannot Save Database"));
+     return ERROR_APP;
 }
