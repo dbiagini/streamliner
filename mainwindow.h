@@ -52,6 +52,7 @@ class QListWidget;
 class QCommandLineParser;
 class QFileSystemModel;
 class QCalendarWidget;
+class QLineEdit;
 //class myTreeView;
 QT_END_NAMESPACE
 
@@ -83,6 +84,7 @@ private slots:
     bool saveAs();
     void about();
     void documentWasModified();
+    void eventListUpdate();
 
 private:
     void createActions();
@@ -126,6 +128,7 @@ private:
     //temporary for debugging//
     QLinkedList<mOrder> ordersList;
     QFile *dbase_file;
+    QLineEdit *destAddrBar;
 
     QMenu *fileMenu;
     QMenu *editMenu;

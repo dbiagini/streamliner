@@ -48,6 +48,7 @@
 static QString mPath = "C:\\Users\\dabi\\Documents\\Mantovana";
 static QString errStringHash =  "OGGETTO NON CATEGORIZZATO";
 static const QString filePath = "C:\\Users\\dabi\\Documents\\Mantovana\\database.txt";
+static QString destPath = "C:\\Users\\dabi\\Documents\\Mantovana\\dest";
 static bool dbase_status = FALSE;
 //! [0]
 
@@ -71,6 +72,8 @@ MainWindow::MainWindow()
             //this, SLOT(documentWasModified()));
     connect(tree, tree->openFile,
             this, openFromClick);
+    connect(destAddrBar, SIGNAL(editingFinished()), tree , SLOT(slotResetView()));
+
 
     setCurrentFile("");
     setUnifiedTitleAndToolBarOnMac(true);
@@ -241,6 +244,11 @@ void MainWindow::createActions()
     cutAct->setEnabled(false);
 //! [23] //! [24]
     copyAct->setEnabled(false);
+
+    /*QWidgetAction *widgetAddr = new QWidgetAction(this);
+    destAddrBar = new QLineEdit(this);
+    widgetAddr->setDefaultWidget(destAddrBar);
+    menubar()->addAction(widgetAction);*/
     //connect(textEdit, SIGNAL(copyAvailable(bool)),
             //cutAct, SLOT(setEnabled(bool)));
     //connect(textEdit, SIGNAL(copyAvailable(bool)),
@@ -292,6 +300,14 @@ void MainWindow::createToolBars()
     editToolBar->addAction(cutAct);
     editToolBar->addAction(copyAct);
     editToolBar->addAction(pasteAct);
+    editToolBar->addSeparator();
+    QWidgetAction *widgetAddr = new QWidgetAction(this);
+    destAddrBar = new QLineEdit(this);
+    destAddrBar->setMaximumWidth(600);
+    destAddrBar->setText(destPath);
+    widgetAddr->setDefaultWidget(destAddrBar);
+    editToolBar->addAction(widgetAddr);
+   // connect(destAddrBar, SIGNAL(textChanged(QString)), tree , SLOT(slotResetView(QString)));
 }
 //! [30]
 
@@ -486,12 +502,22 @@ void MainWindow::createDockWindows()
     calendar->setMaximumWidth(600);
     calendar->setGridVisible(true);
     viewMenu->addAction(dock_c->toggleViewAction());
+    connect(calendar, SIGNAL(selectionChanged()), this, SLOT(eventListUpdate()));
 
 
 //    connect(customerList, SIGNAL(currentTextChanged(QString)),
 //            this, SLOT(insertCustomer(QString)));
 //    connect(paragraphsList, SIGNAL(currentTextChanged(QString)),
 //            this, SLOT(addParagraph(QString)));
+}
+void MainWindow::eventListUpdate()
+{
+    QDate l_date = calendar->selectedDate();
+    QStringList l_orderList;
+    findOrder(l_date, l_orderList);
+    eventList->clear();
+    eventList->addItems(l_orderList);
+    eventDock->setWidget(eventList);
 }
 void MainWindow::createFsTree()
 {
@@ -505,9 +531,11 @@ void MainWindow::createFsTree()
 //        ? QString() : parser->positionalArguments().first();
 
     model = new QFileSystemModel;
+    //model->setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
     model->setRootPath(mPath);
     tree = new myTreeView;
     tree->setModel(model);
+    tree->setRootIndex(model->index(mPath));
 //    if (!rootPath.isEmpty()) {
 //        const QModelIndex rootIndex = model->index(QDir::cleanPath(rootPath));
 //        if (rootIndex.isValid())
@@ -735,14 +763,11 @@ int MainWindow::loadDatabase()
     } QMessageBox::warning(this, tr("Warning"), tr("No database found, Opening New"));
      return SUCCESS_APP;
 }
-void parseString()
-{
-
-}
 int MainWindow::saveDatabase()
 {
     if(dbase_file->isWritable())
     {
+        dbase_file->seek(0);//reset Save always full list
         QLinkedList<mOrder>::iterator i;
         QTextStream out(dbase_file);
         for(i = ordersList.begin(); i != ordersList.end(); i++)

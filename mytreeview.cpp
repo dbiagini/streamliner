@@ -30,3 +30,7 @@ void myTreeView::slotOpen()
     QString fileName = l_fileSystem->filePath(index);
     emit openFile(fileName); //signal
 }
+void myTreeView::slotResetView()
+{
+    this->setRootIndex(this->model()->index());
+}
