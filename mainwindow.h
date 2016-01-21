@@ -83,6 +83,7 @@ private slots:
     bool save();
     bool saveAs();
     void about();
+    void settings();
     void documentWasModified();
     void eventListUpdate();
 
@@ -128,7 +129,7 @@ private:
     //temporary for debugging//
     QLinkedList<mOrder> ordersList;
     QFile *dbase_file;
-    QLineEdit *destAddrBar;
+    QLineEdit *srcAddrBar;
 
     QMenu *fileMenu;
     QMenu *editMenu;
@@ -146,6 +147,7 @@ private:
     QAction *pasteAct;
     QAction *aboutAct;
     QAction *aboutQtAct;
+    QAction *settingsAct;
 };
 //! [0]
 

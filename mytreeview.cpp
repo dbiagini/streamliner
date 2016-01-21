@@ -30,7 +30,9 @@ void myTreeView::slotOpen()
     QString fileName = l_fileSystem->filePath(index);
     emit openFile(fileName); //signal
 }
-void myTreeView::slotResetView()
+void myTreeView::slotResetView(const QString &in_path)
 {
-    this->setRootIndex(this->model()->index());
+    this->setRootIndex(((QFileSystemModel *)this->model())->index(in_path,0));
+    //this->setRootIndex(this->currentIndex());
+
 }

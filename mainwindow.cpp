@@ -48,7 +48,9 @@
 static QString mPath = "C:\\Users\\dabi\\Documents\\Mantovana";
 static QString errStringHash =  "OGGETTO NON CATEGORIZZATO";
 static const QString filePath = "C:\\Users\\dabi\\Documents\\Mantovana\\database.txt";
-static QString destPath = "C:\\Users\\dabi\\Documents\\Mantovana\\dest";
+static QString sourcePath = "C:\\Users\\dabi\\Documents\\Mantovana\\source";
+static QString destPath = "C:\\Users\\dabi\\Documents\\Mantovana\\source";
+
 static bool dbase_status = FALSE;
 //! [0]
 
@@ -72,8 +74,7 @@ MainWindow::MainWindow()
             //this, SLOT(documentWasModified()));
     connect(tree, tree->openFile,
             this, openFromClick);
-    connect(destAddrBar, SIGNAL(editingFinished()), tree , SLOT(slotResetView()));
-
+    connect(srcAddrBar, SIGNAL(textChanged(const QString &)), tree , SLOT(slotResetView(const QString &)));
 
     setCurrentFile("");
     setUnifiedTitleAndToolBarOnMac(true);
@@ -168,6 +169,15 @@ void MainWindow::about()
                "toolbars, and a status bar."));
 }
 //! [14]
+//!
+void MainWindow::settings()
+{
+           QMessageBox::StandardButton ret;
+           ret = QMessageBox::warning(this, tr("Settings"),
+                        tr("Settings for this app goes here Should be QDialog.\n"
+                           "Do you want to save your changes?"),
+                        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+}
 
 //! [15]
 void MainWindow::documentWasModified()
@@ -239,6 +249,9 @@ void MainWindow::createActions()
     aboutQtAct->setStatusTip(tr("Show the Qt library's About box"));
     connect(aboutQtAct, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
 //! [22]
+    settingsAct = new QAction(tr("Settings"), this);
+    settingsAct->setStatusTip(tr("Main Application Settings"));
+    connect(settingsAct, SIGNAL(triggered()), this, SLOT(settings()));
 
 //! [23]
     cutAct->setEnabled(false);
@@ -275,6 +288,7 @@ void MainWindow::createMenus()
     editMenu->addAction(cutAct);
     editMenu->addAction(copyAct);
     editMenu->addAction(pasteAct);
+    editMenu->addAction(settingsAct);
 
     viewMenu = menuBar()->addMenu(tr("&View"));
 
@@ -302,12 +316,12 @@ void MainWindow::createToolBars()
     editToolBar->addAction(pasteAct);
     editToolBar->addSeparator();
     QWidgetAction *widgetAddr = new QWidgetAction(this);
-    destAddrBar = new QLineEdit(this);
-    destAddrBar->setMaximumWidth(600);
-    destAddrBar->setText(destPath);
-    widgetAddr->setDefaultWidget(destAddrBar);
+    srcAddrBar = new QLineEdit(this);
+    srcAddrBar->setMaximumWidth(600);
+    srcAddrBar->setText(sourcePath);
+    widgetAddr->setDefaultWidget(srcAddrBar);
     editToolBar->addAction(widgetAddr);
-   // connect(destAddrBar, SIGNAL(textChanged(QString)), tree , SLOT(slotResetView(QString)));
+   // connect(srcAddrBar, SIGNAL(textChanged(QString)), tree , SLOT(slotResetView(QString)));
 }
 //! [30]
 

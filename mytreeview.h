@@ -29,7 +29,7 @@ class myTreeView : public QTreeView
    private slots:
        void slotCustomContextMenu(QPoint &point);
        void slotOpen();
-       void slotResetView();
+       void slotResetView(const QString &in_path);
    signals:
         void openFile(QString &point);
 
