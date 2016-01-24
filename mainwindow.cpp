@@ -172,11 +172,13 @@ void MainWindow::about()
 //!
 void MainWindow::settings()
 {
-           QMessageBox::StandardButton ret;
-           ret = QMessageBox::warning(this, tr("Settings"),
-                        tr("Settings for this app goes here Should be QDialog.\n"
-                           "Do you want to save your changes?"),
-                        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+//           QMessageBox::StandardButton ret;
+//           ret = QMessageBox::warning(this, tr("Settings"),
+//                        tr("Settings for this app goes here Should be QDialog.\n"
+//                           "Do you want to save your changes?"),
+//                        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+           settingsDial->show();
+
 }
 
 //! [15]
@@ -321,7 +323,10 @@ void MainWindow::createToolBars()
     srcAddrBar->setText(sourcePath);
     widgetAddr->setDefaultWidget(srcAddrBar);
     editToolBar->addAction(widgetAddr);
-   // connect(srcAddrBar, SIGNAL(textChanged(QString)), tree , SLOT(slotResetView(QString)));
+
+    settingsDial = new SettingsDialog;
+    settingsDial->setPath(&destPath);
+    //connect(settingsDial, SIGNAL(saveSettings(const QString &)), tree , SLOT(slotResetView(const QString &)));
 }
 //! [30]
 
@@ -535,39 +540,23 @@ void MainWindow::eventListUpdate()
 }
 void MainWindow::createFsTree()
 {
-//    parser = new QCommandLineParser;
-//    parser->setApplicationDescription("Qt Dir View Example");
-//    parser->addHelpOption();
-//    parser->addVersionOption();
-//    parser->addPositionalArgument("directory", "The directory to start in.");
-//    parser->process(QApplication::arguments());
-//    const QString rootPath = parser->positionalArguments().isEmpty()
-//        ? QString() : parser->positionalArguments().first();
+
 
     model = new QFileSystemModel;
-    //model->setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
+
     model->setRootPath(mPath);
     tree = new myTreeView;
     tree->setModel(model);
     tree->setRootIndex(model->index(mPath));
-//    if (!rootPath.isEmpty()) {
-//        const QModelIndex rootIndex = model->index(QDir::cleanPath(rootPath));
-//        if (rootIndex.isValid())
-//            tree->setRootIndex(rootIndex);
-//    }
 
     // Demonstrating look and feel features
     tree->setAnimated(false);
     tree->setIndentation(20);
     tree->setSortingEnabled(true);
-//    const QSize availableSize = QApplication::desktop()->availableGeometry(tree).size();
-//    tree->resize(availableSize / 2);
-//    tree->setColumnWidth(0, tree->width() / 3);
+
 
     tree->setWindowTitle(QObject::tr("Dir View"));
-//    tree->setContextMenuPolicy(Qt::ActionsContextMenu);
-//    connect(tree, SIGNAL(customContextMenuRequested(const QPoint&)),
-//        this, SLOT(ShowContextMenu(const QPoint&)));
+
 }
 
 void MainWindow::initHash()

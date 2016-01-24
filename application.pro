@@ -1,10 +1,12 @@
 QT += widgets
 
 HEADERS       = mainwindow.h \
-    mytreeview.h
+    mytreeview.h \
+    settingsdialog.h
 SOURCES       = main.cpp \
                 mainwindow.cpp \
-    mytreeview.cpp
+    mytreeview.cpp \
+    settingsdialog.cpp
 #! [0]
 RESOURCES     = application.qrc
 #! [0]

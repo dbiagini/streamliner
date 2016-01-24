@@ -43,6 +43,8 @@
 
 #include <QMainWindow>
 #include "mytreeview.h"
+#include "settingsdialog.h"
+
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -119,6 +121,7 @@ private:
     //QListWidget *paragraphsList;
 
     myTreeView *tree;
+    SettingsDialog *settingsDial;
     QFileSystemModel *model;
     QCommandLineParser *parser;
     QListWidget *parsedData;
