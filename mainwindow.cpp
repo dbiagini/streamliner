@@ -72,9 +72,9 @@ MainWindow::MainWindow()
 
     //connect(textEdit->document(), SIGNAL(contentsChanged()),
             //this, SLOT(documentWasModified()));
-    connect(tree, tree->openFile,
+    connect(SourceTree, SourceTree->openFile,
             this, openFromClick);
-    connect(srcAddrBar, SIGNAL(textChanged(const QString &)), tree , SLOT(slotResetView(const QString &)));
+    connect(srcAddrBar, SIGNAL(textChanged(const QString &)), SourceTree , SLOT(slotResetView(const QString &)));
 
     setCurrentFile("");
     setUnifiedTitleAndToolBarOnMac(true);
@@ -326,7 +326,6 @@ void MainWindow::createToolBars()
 
     settingsDial = new SettingsDialog;
     settingsDial->setPath(&destPath);
-    //connect(settingsDial, SIGNAL(saveSettings(const QString &)), tree , SLOT(slotResetView(const QString &)));
 }
 //! [30]
 
@@ -342,7 +341,7 @@ void MainWindow::createStatusBar()
 void MainWindow::readSettings()
 //! [34] //! [36]
 {
-    QSettings settings("QtProject", "Application Example");
+    QSettings settings("QtProject", "Streamliner");
     QPoint pos = settings.value("pos", QPoint(200, 200)).toPoint();
     QSize size = settings.value("size", QSize(400, 400)).toSize();
     resize(size);
@@ -354,7 +353,7 @@ void MainWindow::readSettings()
 void MainWindow::writeSettings()
 //! [37] //! [39]
 {
-    QSettings settings("QtProject", "Application Example");
+    QSettings settings("QtProject", "Streamliner");
     settings.setValue("pos", pos());
     settings.setValue("size", size());
 }
@@ -409,7 +408,7 @@ void MainWindow::loadFile(const QString &fileName)
 //! [43]
 void MainWindow::parseTextFile(QTextStream &inStream)
 {
-    parsedData = new QListWidget(dock);
+    parsedData = new QListWidget(parsedDataWindow);
     QString  in_line, model_str, parsed_str, out_hash, out_date, l_refNo;
     QDate l_date;
     QStringList parsed_models;
@@ -432,7 +431,10 @@ void MainWindow::parseTextFile(QTextStream &inStream)
                                                   tr("Application Cannot find refNo"));
 
     parsedData->addItems(parsed_models);
-    dock->setWidget(parsedData);
+    parsedData->setMinimumWidth(600);
+    //parsedData->setMaximumWidth(600);
+    parsedDataWindow->show();
+    //dock->setWidget(parsedData);
 }
 
 //! [44]
@@ -488,16 +490,27 @@ QString MainWindow::strippedName(const QString &fullFileName)
 void MainWindow::createDockWindows()
 {
 
-    dock = new QDockWidget(tr("Parsed Data"), this);//memorize this dock for future update
-    addDockWidget(Qt::TopDockWidgetArea, dock);
-    viewMenu->addAction(dock->toggleViewAction());
+     //dock = new QDockWidget(tr("Parsed Data"), this);//memorize this dock for future update
+    //addDockWidget(Qt::TopDockWidgetArea, dock); //do not add to the dock
+    //viewMenu->addAction(dock->toggleViewAction());
+
+    parsedDataWindow = new QDialog(this);
+    //viewMenu->addAction(parsedDataWindow->);
+
+    createFsTree();
+    QDockWidget *dock_destT = new QDockWidget(tr("Organizer"), this);
+    //dock_t->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    addDockWidget(Qt::TopDockWidgetArea, dock_destT);
+    dock_destT->setWidget(DestTree);
+    dock_destT->setMaximumWidth(600);
+    viewMenu->addAction(dock_destT->toggleViewAction());
 
     QDockWidget *dock_t = new QDockWidget(tr("Files"), this);
     //dock_t->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
 
-    createFsTree();
+
     addDockWidget(Qt::TopDockWidgetArea, dock_t);
-    dock_t->setWidget(tree);
+    dock_t->setWidget(SourceTree);
     dock_t->setMaximumWidth(600);
     viewMenu->addAction(dock_t->toggleViewAction());
 
@@ -506,7 +519,7 @@ void MainWindow::createDockWindows()
     addDockWidget(Qt::BottomDockWidgetArea, eventDock);
     viewMenu->addAction(eventDock->toggleViewAction());
     //TEMPORARY???
-    eventList = new QListWidget(dock);
+    eventList = new QListWidget(eventDock);
     eventList->addItems(QStringList()
             << "21VPPA45B00 - PENSILE JOLLY DA 13-45 H.36  TONY"
             << "22VBSJ30C00 - INSERTO \"C\"X JOLLY EVO L.30 MAYA DESERT OPACO - ARCH. PARENTI"
@@ -522,6 +535,8 @@ void MainWindow::createDockWindows()
     calendar->setGridVisible(true);
     viewMenu->addAction(dock_c->toggleViewAction());
     connect(calendar, SIGNAL(selectionChanged()), this, SLOT(eventListUpdate()));
+
+    connect(settingsDial, SIGNAL(saveSettings(const QString &)), DestTree, SLOT(slotResetView(const QString &)));
 
 
 //    connect(customerList, SIGNAL(currentTextChanged(QString)),
@@ -542,20 +557,35 @@ void MainWindow::createFsTree()
 {
 
 
-    model = new QFileSystemModel;
+    SrcModel = new QFileSystemModel;
 
-    model->setRootPath(mPath);
-    tree = new myTreeView;
-    tree->setModel(model);
-    tree->setRootIndex(model->index(mPath));
+    SrcModel->setRootPath(mPath);
+    SourceTree = new myTreeView;
+    SourceTree->setModel(SrcModel);
+    SourceTree->setRootIndex(SrcModel->index(mPath));
 
     // Demonstrating look and feel features
-    tree->setAnimated(false);
-    tree->setIndentation(20);
-    tree->setSortingEnabled(true);
+    SourceTree->setAnimated(false);
+    SourceTree->setIndentation(20);
+    SourceTree->setSortingEnabled(true);
 
 
-    tree->setWindowTitle(QObject::tr("Dir View"));
+    SourceTree->setWindowTitle(QObject::tr("Dir View"));
+
+    DestModel = new QFileSystemModel;
+
+    DestModel->setRootPath(destPath);
+    DestTree = new myTreeView;
+    DestTree->setModel(DestModel);
+    DestTree->setRootIndex(DestModel->index(mPath));
+
+    // Demonstrating look and feel features
+    DestTree->setAnimated(false);
+    DestTree->setIndentation(20);
+    DestTree->setSortingEnabled(true);
+
+
+    DestTree->setWindowTitle(QObject::tr("Organizer"));
 
 }
 

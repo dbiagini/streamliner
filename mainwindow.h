@@ -120,9 +120,11 @@ private:
     //QListWidget *customerList;
     //QListWidget *paragraphsList;
 
-    myTreeView *tree;
+    myTreeView *SourceTree;
+    myTreeView *DestTree;
     SettingsDialog *settingsDial;
-    QFileSystemModel *model;
+    QFileSystemModel *SrcModel;
+    QFileSystemModel *DestModel;
     QCommandLineParser *parser;
     QListWidget *parsedData;
     QListWidget *eventList;
@@ -133,6 +135,7 @@ private:
     QLinkedList<mOrder> ordersList;
     QFile *dbase_file;
     QLineEdit *srcAddrBar;
+    QDialog *parsedDataWindow;
 
     QMenu *fileMenu;
     QMenu *editMenu;

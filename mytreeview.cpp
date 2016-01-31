@@ -33,6 +33,5 @@ void myTreeView::slotOpen()
 void myTreeView::slotResetView(const QString &in_path)
 {
     this->setRootIndex(((QFileSystemModel *)this->model())->index(in_path,0));
-    //this->setRootIndex(this->currentIndex());
 
 }
