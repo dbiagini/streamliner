@@ -67,6 +67,12 @@ struct mOrder
     QString destFolder;
 };
 
+struct mHashName
+{
+    QString name;
+    QString dir;
+};
+
 //! [0]
 class MainWindow : public QMainWindow
 {
@@ -98,9 +104,9 @@ private:
     void writeSettings();
     void createDockWindows();
     void initHash();
-    void searchHash(const QString &stringIn, QString &stringOut);
+    void searchHash(const QString &stringIn, QString &stringOut,  QString &directoryOut);
     void createFsTree();
-    void parseTextFile(QTextStream &inStream);
+    void parseTextFile(QTextStream &inStream, QString &in_path);
     bool maybeSave();
     void loadFile(const QString &fileName);
     bool saveFile(const QString &fileName);
@@ -109,6 +115,7 @@ private:
     int findOrder(const QDate &date, QStringList &l_orderList);
     void addOrder(const mOrder &order);
     int deleteOrder(const QString &refNo);
+    int moveDirectory(QString &in_path, QString &out_path);
     int databaseSetup();
     int loadDatabase();
     int saveDatabase();
@@ -130,7 +137,7 @@ private:
     QListWidget *eventList;
     QDockWidget* dock;
     QDockWidget* eventDock;
-    QHash<QString, QString>* hash;
+    QHash<QString, mHashName>* hash;
     //temporary for debugging//
     QLinkedList<mOrder> ordersList;
     QFile *dbase_file;

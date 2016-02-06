@@ -49,7 +49,7 @@ static QString mPath = "C:\\Users\\dabi\\Documents\\Mantovana";
 static QString errStringHash =  "OGGETTO NON CATEGORIZZATO";
 static const QString filePath = "C:\\Users\\dabi\\Documents\\Mantovana\\database.txt";
 static QString sourcePath = "C:\\Users\\dabi\\Documents\\Mantovana\\source";
-static QString destPath = "C:\\Users\\dabi\\Documents\\Mantovana\\source";
+static QString destPath = "C:\\Users\\dabi\\Documents\\Mantovana\\dest";
 
 static bool dbase_status = FALSE;
 //! [0]
@@ -390,9 +390,11 @@ void MainWindow::loadFile(const QString &fileName)
                              .arg(file.errorString()));
         return;
     }
+    QFileInfo l_fileInfo = QFileInfo(file);
 
     QTextStream in(&file);
-    parseTextFile(in);
+    QString path_ofDir = l_fileInfo.path();
+    parseTextFile(in, path_ofDir);
     in.seek(0);//reset position
 #ifndef QT_NO_CURSOR
     QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -406,11 +408,12 @@ void MainWindow::loadFile(const QString &fileName)
     statusBar()->showMessage(tr("File loaded"), 2000);
 }
 //! [43]
-void MainWindow::parseTextFile(QTextStream &inStream)
+void MainWindow::parseTextFile(QTextStream &inStream, QString &in_path)
 {
     parsedData = new QListWidget(parsedDataWindow);
-    QString  in_line, model_str, parsed_str, out_hash, out_date, l_refNo;
+    QString  in_line, model_str, parsed_str, out_hash, out_date, l_refNo, out_dir, l_path, out_path;
     QDate l_date;
+    int path_set = 0;
     QStringList parsed_models;
     while(!inStream.atEnd()){
         mOrder l_order;
@@ -422,13 +425,24 @@ void MainWindow::parseTextFile(QTextStream &inStream)
         l_refNo = in_line.mid(REF_OFFSET, 14);
         l_order.refNo = l_refNo;
         l_order.date = l_date;
-        searchHash(parsed_str, out_hash);
+        searchHash(parsed_str, out_hash, out_dir);
         l_order.name.append(parsed_str + " - " + out_hash);
+        l_path.clear();
+        settingsDial->getPath(l_path);
+        if(!path_set)
+        {
+            out_path.append(l_path+"\\"+out_dir+"\\"+l_order.date.toString("dd_MM_yyyy"));
+            path_set = 1; //set path once every file stream
+        }
+        l_order.destFolder.append(out_path);
+        QMessageBox::warning(this, tr("Output Path"), l_order.destFolder);
         parsed_models << model_str.right(11) + " - " + out_hash + "  consegna: "+ l_date.toString("ddd MMMM d yy") + " " + l_refNo + "\n";
         addOrder(l_order);
     }
     if(model_str.isEmpty())  QMessageBox::warning(this, tr("Error"),
                                                   tr("Application Cannot find refNo"));
+
+    moveDirectory(in_path, out_path);
 
     parsedData->addItems(parsed_models);
     parsedData->setMinimumWidth(600);
@@ -591,30 +605,31 @@ void MainWindow::createFsTree()
 
 void MainWindow::initHash()
 {
-    hash = new QHash<QString, QString>;
-    hash->insert("21","PENSILE");
-    hash->insert("22V","INSERTO ");
-    hash->insert("2V","INSERTO ");
-    hash->insert("2W","INSERTO ");
-    hash->insert("22W","EL.GIOR.PENS.\"TETRIS\"");
-    hash->insert("22","LIBRERIA");
-    hash->insert("24","LIBRERIA");
-    hash->insert("29","LIBRERIA");
-    hash->insert("22..","PIANO");
-    hash->insert("5200","FASCIA");
-    hash->insert("52VG","TAVOLO+PROLUNGA");
-    hash->insert("2MA","MENSOLA");
-    hash->insert("2WL","MENSOLA");
+    hash = new QHash<QString, mHashName>;
+    hash->insert("21",(const mHashName){"PENSILE", "librerie"});
+    hash->insert("22V",(const mHashName){"INSERTO ", "librerie"});
+    hash->insert("2V",(const mHashName){"INSERTO ", "librerie"});
+    hash->insert("2W",(const mHashName){"INSERTO ", "librerie"});
+    hash->insert("22W",(const mHashName){"EL.GIOR.PENS.\"TETRIS\"", "librerie"});
+    hash->insert("22",(const mHashName){"LIBRERIA", "librerie"});
+    hash->insert("24",(const mHashName){"LIBRERIA", "librerie"});
+    hash->insert("29",(const mHashName){"LIBRERIA", "librerie"});
+    hash->insert("22..",(const mHashName){"PIANO","piani"});
+    hash->insert("5200",(const mHashName){"FASCIA", "piani"});
+    hash->insert("52VG",(const mHashName){"TAVOLO+PROLUNGA", "piani"});
+    hash->insert("2MA",(const mHashName){"MENSOLA", "mensole"});
+    hash->insert("2WL",(const mHashName){"MENSOLA", "mensole"});
 
 }
-void MainWindow::searchHash(const QString &stringIn, QString &stringOut)
+void MainWindow::searchHash(const QString &stringIn, QString &stringOut, QString &directoryOut)
 {
         int retries = 3;
         int characters = 4;
         QString key = stringIn.left(characters);
         while(retries)
         {
-            stringOut = hash->value(key);
+            stringOut = (hash->value(key)).name;
+            directoryOut = (hash->value(key)).dir;
             if(stringOut.isEmpty())
             {
                 characters--;
@@ -824,4 +839,57 @@ int MainWindow::saveDatabase()
         return SUCCESS_APP;
     }else QMessageBox::warning(this, tr("Error"), tr("Cannot Save Database"));
      return ERROR_APP;
+}
+static bool copyRecursively(const QString &srcDirPath,
+                            const QString &tgtDirPath)
+{
+    QFileInfo srcFileInfo(srcDirPath);
+    if (srcFileInfo.isDir()) {
+        QDir targetDir(tgtDirPath);
+        targetDir.cdUp();
+        targetDir.mkdir(QFileInfo(tgtDirPath).fileName());
+            //return false; //don't return false just doesn' create the directory
+        QDir sourceDir(srcDirPath);
+        QStringList fileNames = sourceDir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+        foreach (const QString &fileName, fileNames) {
+            const QString newSrcDirPath
+                    = srcDirPath + QLatin1Char('/') + fileName;
+            const QString newTgtDirPath
+                    = tgtDirPath + QLatin1Char('/') + fileName;
+            if (!copyRecursively(newSrcDirPath, newTgtDirPath))
+                return false;
+        }
+    } else {
+        if (!QFile::copy(srcDirPath, tgtDirPath))
+            return false;
+    }
+    return true;
+}
+
+int MainWindow::moveDirectory(QString &in_path, QString &out_path)
+{
+    QDir src_dir(in_path);
+    if (!src_dir.exists())
+    {
+        QMessageBox::warning(this, tr("Warning"), tr("Source Directory not found!"));
+        return ERROR_APP;
+    }
+
+    QDir dst_dir(out_path);
+    if (!dst_dir.exists())
+    {
+        QMessageBox::warning(this, tr("Warning"), tr("Destination Directory not found, creating new"));
+        if(!dst_dir.mkpath(out_path))
+        {
+            QMessageBox::warning(this, tr("Error"), tr("Cannot create destination directory"));
+            return ERROR_APP;
+        }
+    }
+    //at this point we are sure that source and destination paths exist.
+    if(!copyRecursively(in_path, out_path))
+    {
+        QMessageBox::warning(this, tr("Error"), tr("Not all content was copied"));
+    }
+    return SUCCESS_APP;
+
 }
