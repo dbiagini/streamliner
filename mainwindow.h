@@ -57,15 +57,29 @@ class QCalendarWidget;
 class QLineEdit;
 //class myTreeView;
 QT_END_NAMESPACE
+struct mElement
+{
+    QString name;
+    int color;
+    int lenght;
+    int width;
+    int thickness;
+    QString modelNo;
+
+};
+
+typedef QLinkedList<mElement> mElementList;
 
 struct mOrder
 {
     QString refNo;
-    QStringList name; //one order is made of multiple items
+    mElementList items; //one order is made of multiple items
     QString cp;
     QDate   date;
     QString destFolder;
 };
+
+typedef QLinkedList<mOrder> mOrderList;
 
 struct mHashName
 {
@@ -112,8 +126,9 @@ private:
     bool saveFile(const QString &fileName);
     void setCurrentFile(const QString &fileName);
     QString strippedName(const QString &fullFileName);
-    int findOrder(const QDate &date, QStringList &l_orderList);
-    void addOrder(const mOrder &order);
+    //int findOrder(const QDate &date, QStringList &l_orderList);
+    int findOrdersByDate(const QDate &date, mOrderList &l_orderList);
+    void addOrder(mOrder &order);
     int deleteOrder(const QString &refNo);
     int moveDirectory(QString &in_path, QString &out_path);
     int databaseSetup();
@@ -139,7 +154,8 @@ private:
     QDockWidget* eventDock;
     QHash<QString, mHashName>* hash;
     //temporary for debugging//
-    QLinkedList<mOrder> ordersList;
+    //QLinkedList<mOrder> ordersList;
+    mOrderList ordersList;
     QFile *dbase_file;
     QLineEdit *srcAddrBar;
     QDialog *parsedDataWindow;

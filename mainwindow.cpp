@@ -45,6 +45,9 @@
 
 #define DATE_OFFSET 275
 #define REF_OFFSET 497
+#define SIZE_OFFSET 182
+#define SIZE_SPACING 9
+
 static QString mPath = "C:\\Users\\dabi\\Documents\\Mantovana";
 static QString errStringHash =  "OGGETTO NON CATEGORIZZATO";
 static const QString filePath = "C:\\Users\\dabi\\Documents\\Mantovana\\database.txt";
@@ -411,38 +414,55 @@ void MainWindow::loadFile(const QString &fileName)
 void MainWindow::parseTextFile(QTextStream &inStream, QString &in_path)
 {
     parsedData = new QListWidget(parsedDataWindow);
-    QString  in_line, model_str, parsed_str, out_hash, out_date, l_refNo, out_dir, l_path, out_path;
+    QString  in_line, model_str, parsed_str, out_hash, out_date, l_refNo, out_dir, l_path, out_path, size_str;
     QDate l_date;
-    int path_set = 0;
     QStringList parsed_models;
-    while(!inStream.atEnd()){
-        mOrder l_order;
+    mOrder* l_order = NULL;
+    while(!inStream.atEnd()){ 
+        mElement l_item;
         in_line = inStream.readLine();
         model_str = in_line.split(" ", QString::SkipEmptyParts).at(1);//from each string take the second word/
         out_date = in_line.mid(DATE_OFFSET, 8); //take date
         l_date = QDate::fromString(out_date, "yyyyMMdd");
         parsed_str = model_str.right(11);
-        l_refNo = in_line.mid(REF_OFFSET, 14);
-        l_order.refNo = l_refNo;
-        l_order.date = l_date;
-        searchHash(parsed_str, out_hash, out_dir);
-        l_order.name.append(parsed_str + " - " + out_hash);
-        l_path.clear();
-        settingsDial->getPath(l_path);
-        if(!path_set)
+        l_refNo = in_line.mid(REF_OFFSET, 14); //CP
+        if((!l_order)||(l_order->refNo != l_refNo)) //different order create new
         {
-            out_path.append(l_path+"\\"+out_dir+"\\"+l_order.date.toString("dd_MM_yyyy"));
-            path_set = 1; //set path once every file stream
+            if(l_order) {
+                out_path.append(l_path+"\\"+out_dir+"\\"+l_order->date.toString("dd_MM_yyyy"));
+                l_order->destFolder.append(out_path);
+                addOrder(*l_order); //store the previous order
+            }
+            l_order = new mOrder; //create dynamically
+            l_order->refNo = l_refNo;
+            l_order->date = l_date;
+            l_path.clear();
+            settingsDial->getPath(l_path);
+            out_path.clear();
         }
-        l_order.destFolder.append(out_path);
-        QMessageBox::warning(this, tr("Output Path"), l_order.destFolder);
+        searchHash(parsed_str, out_hash, out_dir);
+        l_item.name.append(parsed_str + " - " + out_hash);
+        l_item.modelNo = model_str;
+        l_item.lenght = in_line.mid(SIZE_OFFSET, 9).toInt();
+        l_item.width = in_line.mid(SIZE_OFFSET+ (2*SIZE_SPACING), 9).toInt();
+        l_item.thickness = in_line.mid(SIZE_OFFSET+ SIZE_SPACING , 9).toInt();
+        QString l_dimensions;
+        l_dimensions.sprintf( " - L: %d, W: %d, T: %d",l_item.lenght, l_item.width, l_item.thickness);
+        l_item.name.append(l_dimensions);
+        //QMessageBox::warning(this, tr("Output Path"), l_order.destFolder);
         parsed_models << model_str.right(11) + " - " + out_hash + "  consegna: "+ l_date.toString("ddd MMMM d yy") + " " + l_refNo + "\n";
-        addOrder(l_order);
+        l_order->items.append(l_item); //add Item to the
     }
+    if(!l_order->refNo.isEmpty()){
+        out_path.append(l_path+"\\"+out_dir+"\\"+l_order->date.toString("dd_MM_yyyy"));
+        l_order->destFolder.append(out_path);
+        addOrder(*l_order); //last order must be added
+    }
+
     if(model_str.isEmpty())  QMessageBox::warning(this, tr("Error"),
                                                   tr("Application Cannot find refNo"));
 
-    moveDirectory(in_path, out_path);
+    moveDirectory(in_path, out_path); //For now we assume that there is going to be one out date/path for each file in.
 
     parsedData->addItems(parsed_models);
     parsedData->setMinimumWidth(600);
@@ -534,10 +554,10 @@ void MainWindow::createDockWindows()
     viewMenu->addAction(eventDock->toggleViewAction());
     //TEMPORARY???
     eventList = new QListWidget(eventDock);
-    eventList->addItems(QStringList()
+    /*eventList->addItems(QStringList()
             << "21VPPA45B00 - PENSILE JOLLY DA 13-45 H.36  TONY"
             << "22VBSJ30C00 - INSERTO \"C\"X JOLLY EVO L.30 MAYA DESERT OPACO - ARCH. PARENTI"
-            << "22WCTL90002 - EL.GIO.PEN.\"TETRIS\"L90 P33.4 H36 3VANI ALEVE'OL.ME - FRANCESCO");
+            << "22WCTL90002 - EL.GIO.PEN.\"TETRIS\"L90 P33.4 H36 3VANI ALEVE'OL.ME - FRANCESCO");*/
     eventDock->setWidget(eventList);
 
     //calendar widget
@@ -561,10 +581,20 @@ void MainWindow::createDockWindows()
 void MainWindow::eventListUpdate()
 {
     QDate l_date = calendar->selectedDate();
-    QStringList l_orderList;
-    findOrder(l_date, l_orderList);
+    mOrderList l_orderList;
+    findOrdersByDate(l_date, l_orderList);
+    QStringList l_listShown;
+    mOrderList::iterator i;
+    for(i = l_orderList.begin(); i != l_orderList.end(); i++)
+    {
+        mElementList::iterator j;
+        for(j = i->items.begin(); j != i->items.end(); j++)
+        {
+            l_listShown.append(j->name);
+        }
+    }
     eventList->clear();
-    eventList->addItems(l_orderList);
+    eventList->addItems(l_listShown);
     eventDock->setWidget(eventList);
 }
 void MainWindow::createFsTree()
@@ -642,17 +672,18 @@ void MainWindow::searchHash(const QString &stringIn, QString &stringOut, QString
             stringOut.append(errStringHash);
 }
 
-int MainWindow::findOrder(const QDate &date, QStringList &l_orderList)
+int MainWindow::findOrdersByDate(const QDate &date, mOrderList &l_orderList)
 {
     int orders_found = 0;
     if(date.isValid())
     {
-       QLinkedList<mOrder>::iterator i;
+       //QLinkedList<mOrder>::iterator i;
+       mOrderList::iterator i;
        for(i = ordersList.begin(); i != ordersList.end(); i++)
        {
            if(date == i->date)
            {
-               l_orderList.append(i->name);
+               l_orderList.append(*i);
                orders_found++;
            }
        }
@@ -663,21 +694,26 @@ int MainWindow::findOrder(const QDate &date, QStringList &l_orderList)
     }else QMessageBox::warning(this, tr("Error"), tr("Date Not Valid"));
     return ERROR_APP;
 }
-void MainWindow::addOrder(const mOrder &order)
+void MainWindow::addOrder(mOrder &order)
 {
     int order_exists = 0;
     //mOrder l_order;
     int order_inserted = 0;
     if(!order.refNo.isEmpty())
     {
-       QLinkedList<mOrder>::iterator i;
+       //QLinkedList<mOrder>::iterator i;
+       mOrderList::iterator i;
        for(i = ordersList.begin(); i != ordersList.end(); i++)
        {
            if(order.refNo == i->refNo)
            {
                order_exists = 1;
-               i->name << (*order.name.begin()); //add to pre-existing order
-              // l_order = *i;
+              // i->name << (*order.name.begin()); //add to pre-existing order
+               mElementList::iterator j;
+               for(j = order.items.begin(); j != order.items.end(); j++)
+               {
+                   i->items.append(*j); //append new items
+               }
                break;
            }
        }
@@ -706,7 +742,8 @@ int MainWindow::deleteOrder(const QString &refNo)
     int order_deleted = 0;
     if(!refNo.isEmpty())
     {
-       QLinkedList<mOrder>::iterator i;
+       //QLinkedList<mOrder>::iterator i;
+       mOrderList::iterator i;
        for(i = ordersList.begin(); i != ordersList.end(); i++)
        {
            if(refNo == i->refNo)
@@ -719,8 +756,10 @@ int MainWindow::deleteOrder(const QString &refNo)
        if(!order_deleted)
        {
            QMessageBox::warning(this, tr("Error"), tr("Cannot find Order refNo"));
+           return false;
        }
     }else QMessageBox::warning(this, tr("Error"), tr("Order refNo Empty"));
+    return true;
 }
 
 int MainWindow::databaseSetup()
@@ -743,7 +782,7 @@ int MainWindow::loadDatabase()
         mOrder in_item;
         QString l_date;
         QStringList l_FullName;
-        QString l_name;
+        mElementList l_elements;
         QTextStream in(dbase_file);
         QString id;
         while(!in.atEnd())
@@ -757,26 +796,17 @@ int MainWindow::loadDatabase()
                 switch(x){
                     case 'O':
                         if(!in_item.refNo.isEmpty()){  //if this is not the first in file
-                            if(!l_name.isEmpty())
-                            {
-                                l_FullName.append(l_name);
-                                l_name.clear();
-                            }
                             if(!l_date.isEmpty())
                             {
                                 in_item.date = QDate::fromString(l_date, "yyyyMMdd");
                                 l_date.clear();
-                            }
-                            if(!l_FullName.isEmpty())
-                            {
-                                in_item.name = l_FullName;
-                                l_FullName.clear();
                             }
                             ordersList.append(in_item); //add previous order
                            // memset(&in_item, 0 , sizeof(in_item));
                             in_item.cp.clear(); //reset mOrder
                             in_item.refNo.clear();
                             in_item.destFolder.clear();
+                            in_item.items.clear();
                         }
                         break;
                     case 'D':
@@ -791,19 +821,43 @@ int MainWindow::loadDatabase()
                     case 'C':
                         out_item = &in_item.cp;
                         break;
-                    case 'N':
-                        if(!l_name.isEmpty())
+                    case 'I':
+                        out_item = NULL; //should be reset
+                        mElement l_element;
+                        while(!in.atEnd())
                         {
-                            l_FullName.append(l_name);
-                            l_name.clear();
+                            in >> x;
+                            if (x != '_') l_element.name.append(x); //parse name
+                            else break;
                         }
-                        out_item = &l_name;
+                        while(!in.atEnd())
+                        {
+                            in >> x;
+                            if (x != '_') l_element.modelNo.append(x); //parse name
+                            else break;
+                        }
+                        in >> l_element.lenght;
+                        in >> l_element.width;
+                        in >> l_element.thickness;
+                        in_item.items.append(l_element);
                         break;
                 }
             } else if(out_item)
             {
                 out_item->append(x);   //output the char read
-            }else  QMessageBox::warning(this, tr("Error"), tr("Parsing Database Issue: Field not recognized"));
+            }else if(x == ' ') //out_item not set_space between fields
+            {
+                //just go further
+            }
+            else QMessageBox::warning(this, tr("Error"), tr("Parsing Database Issue: Field not recognized"));
+        }
+        if(in_item.items.count()){
+            if(!l_date.isEmpty())
+            {
+                in_item.date = QDate::fromString(l_date, "yyyyMMdd");
+                l_date.clear();
+            }
+            ordersList.append(in_item); //add last order
         }
         QMessageBox::warning(this, tr("Success"), tr("Database Loaded!"));
         return SUCCESS_APP;
@@ -816,7 +870,8 @@ int MainWindow::saveDatabase()
     if(dbase_file->isWritable())
     {
         dbase_file->seek(0);//reset Save always full list
-        QLinkedList<mOrder>::iterator i;
+        //QLinkedList<mOrder>::iterator i;
+        mOrderList::iterator i;
         QTextStream out(dbase_file);
         for(i = ordersList.begin(); i != ordersList.end(); i++)
         {
@@ -829,11 +884,20 @@ int MainWindow::saveDatabase()
              out << i->destFolder;
              out << "_C";
              out << i->cp;
-             QStringList::iterator j;
-             for(j = i->name.begin(); j!= i->name.end(); j++)
+             mElementList::iterator j;
+             for(j = i->items.begin(); j!= i->items.end(); j++)
              {
-                out << "_N";
-                out << *j;
+                out << "_I";
+                out << j->name;
+                out << "_";
+                out << j->modelNo;
+                out << "_";
+                out << (uint32_t) j->lenght;
+                out << " ";
+                out << (uint32_t) j->width;
+                out << " ";
+                out << (uint32_t) j->thickness;
+                out << " ";
              }
         }
         return SUCCESS_APP;
