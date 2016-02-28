@@ -44,6 +44,7 @@
 #include <QMainWindow>
 #include "mytreeview.h"
 #include "settingsdialog.h"
+#include "databaseeditor.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -106,6 +107,7 @@ private slots:
     bool saveAs();
     void about();
     void settings();
+    void itemsList();
     void documentWasModified();
     void eventListUpdate();
 
@@ -160,6 +162,8 @@ private:
     QLineEdit *srcAddrBar;
     QDialog *parsedDataWindow;
 
+    DatabaseEditor* dbase_edit;
+
     QMenu *fileMenu;
     QMenu *editMenu;
     QMenu *helpMenu;
@@ -177,6 +181,7 @@ private:
     QAction *aboutAct;
     QAction *aboutQtAct;
     QAction *settingsAct;
+    QAction *itemsListAct;
 };
 //! [0]
 

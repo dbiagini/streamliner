@@ -183,6 +183,17 @@ void MainWindow::settings()
            settingsDial->show();
 
 }
+void MainWindow::itemsList()
+{
+//           QMessageBox::StandardButton ret;
+//           ret = QMessageBox::warning(this, tr("Settings"),
+//                        tr("Settings for this app goes here Should be QDialog.\n"
+//                           "Do you want to save your changes?"),
+//                        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+      dbase_edit->show();
+
+
+}
 
 //! [15]
 void MainWindow::documentWasModified()
@@ -258,6 +269,10 @@ void MainWindow::createActions()
     settingsAct->setStatusTip(tr("Main Application Settings"));
     connect(settingsAct, SIGNAL(triggered()), this, SLOT(settings()));
 
+    itemsListAct = new QAction(tr("Items List"), this);
+    itemsListAct->setStatusTip(tr("List of Items availabe"));
+    connect(itemsListAct, SIGNAL(triggered()), this, SLOT(itemsList()));
+
 //! [23]
     cutAct->setEnabled(false);
 //! [23] //! [24]
@@ -294,6 +309,7 @@ void MainWindow::createMenus()
     editMenu->addAction(copyAct);
     editMenu->addAction(pasteAct);
     editMenu->addAction(settingsAct);
+    editMenu->addAction(itemsListAct);
 
     viewMenu = menuBar()->addMenu(tr("&View"));
 
@@ -329,6 +345,9 @@ void MainWindow::createToolBars()
 
     settingsDial = new SettingsDialog;
     settingsDial->setPath(&destPath);
+
+    dbase_edit = new DatabaseEditor;
+
 }
 //! [30]
 
@@ -833,7 +852,7 @@ int MainWindow::loadDatabase()
                         while(!in.atEnd())
                         {
                             in >> x;
-                            if (x != '_') l_element.modelNo.append(x); //parse name
+                            if (x != '_') l_element.modelNo.append(x); //parse model no
                             else break;
                         }
                         in >> l_element.lenght;
