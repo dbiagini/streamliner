@@ -23,27 +23,50 @@ DatabaseEditor::DatabaseEditor(QWidget *parent)
     QTableView *view = new QTableView;
     view->setModel(model);
     view->resizeColumnsToContents();
+    initHash();
 
     submitButton = new QPushButton(tr("Submit"));
     submitButton->setDefault(true);
     revertButton = new QPushButton(tr("&Revert"));
     quitButton = new QPushButton(tr("Quit"));
+    importButton = new QPushButton(tr("Import"));
 
     buttonBox = new QDialogButtonBox(Qt::Vertical);
     buttonBox->addButton(submitButton, QDialogButtonBox::ActionRole);
     buttonBox->addButton(revertButton, QDialogButtonBox::ActionRole);
+    buttonBox->addButton(importButton, QDialogButtonBox::RejectRole);
     buttonBox->addButton(quitButton, QDialogButtonBox::RejectRole);
+
 
     connect(submitButton, SIGNAL(clicked()), this, SLOT(submit()));
     connect(revertButton, SIGNAL(clicked()), model, SLOT(revertAll()));
     connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
+    connect(importButton, SIGNAL(clicked()), this, SLOT(import()));
 
     QHBoxLayout *mainLayout = new QHBoxLayout;
+    QVBoxLayout *rightSideLayout = new QVBoxLayout;
     mainLayout->addWidget(view);
-    mainLayout->addWidget(buttonBox);
-    setLayout(mainLayout);
+    rightSideLayout->addWidget(buttonBox);
 
     setWindowTitle(tr("Items Editor"));
+    db_movie = new QMovie(":/images/loader.gif");
+    mv_lable = new QLabel(this);
+    mv_lable->setMovie(db_movie);
+    rightSideLayout->addWidget(mv_lable,0,Qt::AlignTop|Qt::AlignHCenter);
+    mainLayout->addLayout(rightSideLayout);
+    setLayout(mainLayout);
+}
+void DatabaseEditor::initHash()
+{
+    cat_hash = new QHash<QString, QString>;
+    cat_hash->insert("ACS", "librerie");
+    cat_hash->insert("TAS", "tavoli");
+    cat_hash->insert("MUS", "murature");
+    cat_hash->insert("COS", "cornici");
+    cat_hash->insert("MES", "mensole");
+    cat_hash->insert("PIS", "piani");
+    cat_hash->insert("ANS", "piani");
+    cat_hash->insert("MUS", "misto");
 }
 
 DatabaseEditor::~DatabaseEditor()
@@ -78,6 +101,8 @@ bool DatabaseEditor::createConnection()
                      "Click Cancel to exit."), QMessageBox::Cancel);
         return false;
     }
+    //QSqlQuery query;
+    //query.exec("INSERT INTO items VALUES('first','test','piani')");
 
 //    QSqlQuery query;
 //    query.exec("create table person (id int primary key, "
@@ -122,4 +147,107 @@ bool DatabaseEditor::createConnection()
 //    query.exec("insert into images values(3, 'images/qt-project.png')");
 
     return true;
+}
+int DatabaseEditor::processLine(QString *out_parsed ,QStringList *in_line)
+{
+    if(in_line)
+    {
+
+      int l_offs = (int)(in_line->count()-4);
+      QString l_cat = in_line->at(l_offs);
+      *out_parsed = cat_hash->value(l_cat);
+      if(!out_parsed->isEmpty())
+          return true;
+      else
+      {
+          QMessageBox::warning(this, tr("Item Category not recognized: "),
+                               tr(" %1:\n")
+                               .arg(l_cat));
+          return false;
+      }
+
+    }
+    else
+        return false;
+
+
+}
+void DatabaseEditor::import()
+{
+    QString fileName = QFileDialog::getOpenFileName(this);
+    if (!fileName.isEmpty())
+    {
+        QFile f(fileName);
+        if(f.open (QIODevice::ReadOnly | QFile::Text)){
+            QSqlQuery que;
+            QTextStream ts (&f);
+            QStringList line = ts.readLine().split(','); //throw away title line
+            if(model->rowCount())
+            {
+                if (QMessageBox::No == QMessageBox(QMessageBox::Information, tr("Database Update"), tr("The database is not empty do you want to overwrite it?"),
+                                                    QMessageBox::Yes|QMessageBox::No).exec())
+                {
+                    QMessageBox::warning(this, tr("Database Update"),
+                                         tr("Database update skipped"));
+                    return;
+                }
+                else
+                {
+                    //need to clear the database first
+                    QSqlQuery query_clear;
+                    query_clear.exec("DELETE from " DATABASE_TABLE);
+                    query_clear.exec("VACUUM");
+                    /*QMessageBox::warning(this, tr("Query not successful"),
+                                     tr("%1 \n%2")
+                                     .arg(query_clear.executedQuery())
+                                     .arg(query_clear.lastError().text()));*/
+
+                }
+            }
+            mv_lable->show();
+            db_movie->start();
+
+            while(!ts.atEnd()){
+
+                // split every lines on comma
+                line = ts.readLine().split(',');
+                /*for every values on a line,
+                  append it to the INSERT request*/
+                QString l_processed;
+                if(processLine(&l_processed,&line)){
+                    QString req = "INSERT INTO "DATABASE_TABLE" VALUES('";
+
+                        req.append(line.at(0));
+                        req.append("','");
+                        QString l_mid = line.at(1);
+                        //remove special characters//
+                        l_mid.remove(QRegExp(QString::fromUtf8("[-`~!@#$%^&*()_—+=|:;<>«»?/{}\'\"\\\[\\\]\\\\]")));
+                        req.append(l_mid);
+                        req.append("','");
+                        req.append(l_processed);
+                        req.append("',");
+                        req.chop(1); // remove the trailing comma
+                        req.append(");"); // close the "VALUES([...]" with a ");"
+                        if(!que.exec(req))
+                            QMessageBox::warning(this, tr("Query not successful"),
+                                             tr("%1 \n%2")
+                                             .arg(req)
+                                             .arg(que.lastError().text()));
+                         QCoreApplication::processEvents();
+                } //otherwise skip the line
+            }
+            f.close ();
+            model->select(); //update Database View
+            db_movie->stop();
+            mv_lable->hide();
+        } else
+        {
+            QMessageBox::warning(this, tr("Application"),
+                                 tr("Cannot read file %1:\n%2.")
+                                 .arg(fileName)
+                                 .arg(f.errorString()));
+            return;
+        }
+
+    }
 }
